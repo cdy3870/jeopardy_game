@@ -20,7 +20,7 @@ st.markdown("# Jeopardy Practice")
 
 st.write("Test your trivia knowledge from 500 old Jeopardy games.")
 
-# value_map = {100: 1, 200: 1, 200: 2, 400:}
+value_map = {200: 1, 400: 2, 600: 3, 800: 4, 1000: 5}
 
 @st.cache_resource
 def setup_db(reset, host="localhost", name="jeopardydb", user="calvinyu", password="password"):
@@ -149,6 +149,7 @@ def main():
 		try:
 			st.session_state.clue_number = 1
 			df = get_game(db.conn)
+			print(df["value"].value_counts())
 
 		finally:
 			st.session_state.result = df
@@ -173,7 +174,13 @@ def main():
 			# st.write("All clues for game shown. Generate a new game to continue playing.")
 			st.session_state.clue_number = 0
 
-		st.write("Difficulty level: " + df.iloc[clue_numbers[st.session_state.clue_number]]["category"])
+		value = df.iloc[clue_numbers[st.session_state.clue_number]]["value"]
+		if df.iloc[clue_numbers[st.session_state.clue_number]]["round"] == "DJ!":
+			difficulty_level = value_map[value/2]
+		else:
+			difficulty_level = value_map[value]
+
+		st.write(f"Difficulty level: {difficulty_level}/5")
 		st.write("Category: " + df.iloc[clue_numbers[st.session_state.clue_number]]["category"])
 		st.write("Clue: " + df.iloc[clue_numbers[st.session_state.clue_number]]["clue"])
 
