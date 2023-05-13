@@ -14,6 +14,7 @@ def get_cat_dist(db):
 	return fig
 
 
-db = DBDriver(host="localhost", name="jeopardydb", user="calvinyu")
+db = DBDriver(host="drona.db.elephantsql.com", name="hvkogzmy",
+			  user="hvkogzmy", password="TqgdVBnft1hXRg7_oG73QZriwst4_BLA")
 bar = get_cat_dist(db)
 st.plotly_chart(bar)
