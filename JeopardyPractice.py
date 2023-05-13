@@ -16,11 +16,11 @@ st.set_page_config(
 	page_icon="📈"
 )
 
-st.markdown("# Jeopardy Practice (500 Old Games)")
+st.markdown("# Jeopardy Practice")
 
-image = Image.open('image.png')
+st.write("Test your trivia knowledge from 500 old Jeopardy games.")
 
-st.image(image, width=500)
+# value_map = {100: 1, 200: 1, 200: 2, 400:}
 
 @st.cache_resource
 def setup_db(reset, host="localhost", name="jeopardydb", user="calvinyu", password="password"):
@@ -123,6 +123,10 @@ def main():
 		st.session_state.temp = True
 
 	with st.sidebar:
+		image = Image.open('image.png')
+
+		st.image(image, width=300)
+
 		add_radio = st.radio(
 			"Choose mode",
 			("Full Random Game", "Specific Category")
@@ -169,7 +173,7 @@ def main():
 			# st.write("All clues for game shown. Generate a new game to continue playing.")
 			st.session_state.clue_number = 0
 
-
+		st.write("Difficulty level: " + df.iloc[clue_numbers[st.session_state.clue_number]]["category"])
 		st.write("Category: " + df.iloc[clue_numbers[st.session_state.clue_number]]["category"])
 		st.write("Clue: " + df.iloc[clue_numbers[st.session_state.clue_number]]["clue"])
 
