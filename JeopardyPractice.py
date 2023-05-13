@@ -8,6 +8,7 @@ import random
 import time
 import asyncio
 from datetime import datetime
+from PIL import Image
 
 st.set_page_config(
 	page_title="Jeopardy Practice",
@@ -16,6 +17,10 @@ st.set_page_config(
 )
 
 st.markdown("# Jeopardy Practice (500 Old Games)")
+
+image = Image.open('image.png')
+
+st.image(image, width=500)
 
 @st.cache_resource
 def setup_db(reset, host="localhost", name="jeopardydb", user="calvinyu", password="password"):
