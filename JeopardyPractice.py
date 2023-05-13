@@ -13,12 +13,12 @@ from PIL import Image
 st.set_page_config(
 	page_title="Jeopardy Practice",
 	layout="wide",
-	page_icon="📈"
+	page_icon="🔥"
 )
 
 st.markdown("# Jeopardy Practice")
 
-st.write("Test your trivia knowledge from 500 old Jeopardy games.")
+st.write("Test your trivia knowledge with 500 old Jeopardy games.")
 
 value_map = {200: 1, 400: 2, 600: 3, 800: 4, 1000: 5}
 
@@ -64,7 +64,7 @@ def extract_categories(df):
 	j_round_cats = df[df["round"] == "J!"]["category"].unique()
 	dj_round_cats = df[df["round"] == "DJ!"]["category"].unique()
 
-	categories = pd.DataFrame({"Cat.": j_round_cats, "Double Jeopardy Cat.": dj_round_cats})
+	categories = pd.DataFrame({"Category": j_round_cats, "Double Jeopardy Category": dj_round_cats})
 
 	return categories
 
