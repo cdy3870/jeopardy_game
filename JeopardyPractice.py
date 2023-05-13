@@ -17,6 +17,7 @@ st.set_page_config(
 
 st.markdown("# Jeopardy Practice (500 Old Games)")
 
+@st.cache_data
 def setup_db(reset, host="localhost", name="jeopardydb", user="calvinyu", password="password"):
 	db = DBDriver(host=host, name=name, user=user, password=password)
 
@@ -53,6 +54,7 @@ def get_game(_conn):
 	df = dataframe.drop(["clue_id", "game_id"], axis=1)
 	return df
 
+@st.cache_data
 def extract_categories(df):
 	j_round_cats = df[df["round"] == "J!"]["category"].unique()
 	dj_round_cats = df[df["round"] == "DJ!"]["category"].unique()
