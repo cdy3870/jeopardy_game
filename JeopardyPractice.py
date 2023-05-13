@@ -17,7 +17,7 @@ st.set_page_config(
 
 st.markdown("# Jeopardy Practice (500 Old Games)")
 
-@st.cache_data
+@st.cache_resource
 def setup_db(reset, host="localhost", name="jeopardydb", user="calvinyu", password="password"):
 	db = DBDriver(host=host, name=name, user=user, password=password)
 
