@@ -16,9 +16,9 @@ st.set_page_config(
 	page_icon="🔥"
 )
 
-st.markdown("# Jeopardy Practice")
+st.markdown("<h1 style='text-align: center'> Jeopardy Practice </h1>", unsafe_allow_html=True)
 
-st.write("Test your trivia knowledge with 500 old Jeopardy games.")
+st.markdown("<p style='text-align: center'> Test your trivia knowledge with 500 old Jeopardy games. </p>", unsafe_allow_html=True)
 
 value_map = {200: 1, 400: 2, 600: 3, 800: 4, 1000: 5}
 
@@ -68,9 +68,8 @@ def extract_categories(df):
 
 	return categories
 
-@st.cache_data
-def get_clue_numbers():
-	clue_numbers = list(range(1, 61))
+def get_clue_numbers(num):
+	clue_numbers = list(range(1, num))
 	random.shuffle(clue_numbers)
 	return clue_numbers
 
@@ -94,16 +93,30 @@ async def watch(ts):
 			r = await asyncio.sleep(1)
 			ts -= 1
 
+@st.cache_data()
+def get_top_categories(_db, num):
+	test_df = psql.read_sql(
+	f"SELECT * FROM jeopardy.clues", _db.conn)
+	top_categories = tuple(test_df["category"].value_counts()
+						.reset_index(name='count').rename({"index": "category"}, axis=1).iloc[:num]["category"])
+
+	return top_categories
+
+def get_specific_category(category, db):
+	test_df = psql.read_sql(
+	f"SELECT * FROM jeopardy.clues WHERE category = '{category}'", db.conn)
+
+	return test_df
+
+
 def main():
 	db = setup_db(reset=False, host="drona.db.elephantsql.com", name="hvkogzmy",
 				user="hvkogzmy", password="TqgdVBnft1hXRg7_oG73QZriwst4_BLA")
 
+	top_categories = get_top_categories(db, 25)
+
 	# store_games(db, 500)
 	
-	test_df = psql.read_sql(
-	f"SELECT * FROM jeopardy.clues", db.conn)
-	top_10_categories = tuple(test_df["category"].value_counts()
-						.reset_index(name='count').rename({"index": "category"}, axis=1).iloc[:10]["category"])
 
 	# store_games(db, 50)
 	if 'result' not in st.session_state:
@@ -122,6 +135,8 @@ def main():
 	if 'temp' not in st.session_state:
 		st.session_state.temp = True
 
+	option = None
+
 	with st.sidebar:
 		image = Image.open('image.png')
 
@@ -129,81 +144,147 @@ def main():
 
 		add_radio = st.radio(
 			"Choose mode",
-			("Full Random Game", "Specific Category")
+			("Full Random Game", "By Category (Top 25)")
 		)
-		if add_radio == "Specific Category":
-			option = st.selectbox("", top_10_categories)
+		if add_radio == "By Category (Top 25)":
+			option = st.selectbox("", top_categories)
 
 
-	col1, col2, col3, col4 = st.columns(4)
+	if option == None:
+		col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
 
-	col3.write(f"Num correct: {st.session_state.num_correct}/{st.session_state.total_clues}")
-
-
-
-
-	if col2.button("Reset Scores"):
-		st.session_state.total_clues = 0
-
-	if col1.button("Generate New Game"):
-		try:
-			st.session_state.clue_number = 1
-			df = get_game(db.conn)
-			print(df["value"].value_counts())
-
-		finally:
-			st.session_state.result = df
-
-	clue_numbers = get_clue_numbers()
-
-	if st.session_state.result is not None:
-		df = st.session_state.result
-		categories = extract_categories(df)
-		categories
-
-
-	if st.session_state.clue_number > 0 and st.button("Next Random Clue"):
+		col7.write(f"Total correct: {st.session_state.num_correct}/{st.session_state.total_clues}")
 
 
 
-		st.session_state.pressed_correct = False
-		st.session_state.clue_number += 1
-		st.session_state.total_clues += 1
 
-		if st.session_state.clue_number == 61:
-			# st.write("All clues for game shown. Generate a new game to continue playing.")
-			st.session_state.clue_number = 0
+		if col4.button("Reset Scores"):
+			st.session_state.num_correct = 0
+			st.session_state.total_clues = 0
 
-		value = df.iloc[clue_numbers[st.session_state.clue_number]]["value"]
-		if df.iloc[clue_numbers[st.session_state.clue_number]]["round"] == "DJ!":
-			difficulty_level = value_map[value/2]
-		else:
-			difficulty_level = value_map[value]
+		if col1.button("New Game"):
+			try:
+				st.session_state.clue_number = 1
+				df = get_game(db.conn)
+				print(df["value"].value_counts())
 
-		st.write(f"Difficulty level: {difficulty_level}/5")
-		st.write("Category: " + df.iloc[clue_numbers[st.session_state.clue_number]]["category"])
-		st.write("Clue: " + df.iloc[clue_numbers[st.session_state.clue_number]]["clue"])
+			finally:
+				st.session_state.result = df
 
-		st.session_state.temp = True
+		clue_numbers = get_clue_numbers(61)
 
-		
+		if st.session_state.result is not None:
+			df = st.session_state.result
+			categories = extract_categories(df)
+			categories
 
 
-	if st.session_state.clue_number > 0 and not st.session_state.pressed_correct:
-		placeholder = st.empty()
-		isclick = placeholder.button("Show Answer")
-		if isclick:
-			st.write("Category: " + df.iloc[clue_numbers[st.session_state.clue_number]]["category"])
-			st.write("Clue: " + df.iloc[clue_numbers[st.session_state.clue_number]]["clue"])
-			st.write("Answer: " + df.iloc[clue_numbers[st.session_state.clue_number]]["response"])
-			placeholder.empty()
+		if st.session_state.clue_number > 0 and st.button("Next Random Clue"):
 
-			col5, col6, col7, col8, col9, col10 = st.columns(6)
+
+
+			st.session_state.pressed_correct = False
+			st.session_state.clue_number += 1
+			st.session_state.total_clues += 1
+
+			if st.session_state.clue_number == 61:
+				# st.write("All clues for game shown. Generate a new game to continue playing.")
+				st.session_state.clue_number = 0
+
+			value = df.iloc[clue_numbers[st.session_state.clue_number]]["value"]
+			if df.iloc[clue_numbers[st.session_state.clue_number]]["round"] == "DJ!":
+				difficulty_level = value_map[value/2]
+			else:
+				difficulty_level = value_map[value]
+
+			st.write(f"**Difficulty level:** {difficulty_level}/5")
+			st.write("**Category:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["category"])
+			st.write("**Clue:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["clue"])
+
+			st.session_state.temp = True
+
 			
 
-			col5.button("Correct", on_click=update_num_correct)
 
-			st.session_state.temp = False
+		if st.session_state.clue_number > 0 and not st.session_state.pressed_correct:
+			placeholder = st.empty()
+			isclick = placeholder.button("Show Answer")
+			if isclick:
+				st.write("**Category:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["category"])
+				st.write("**Clue:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["clue"])
+				st.write("**Answer:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["response"])
+				placeholder.empty()
+
+				
+				
+
+				st.button("Correct", on_click=update_num_correct)
+
+				st.session_state.temp = False
+
+
+	else:
+		col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
+
+
+		df = get_specific_category(option, db)
+		length = len(df)
+		st.session_state.clue_number = 1
+
+		clue_numbers = get_clue_numbers(length)
+
+
+		col1.write(f"Total clues: {length}")
+
+		if col4.button("Reset Scores"):
+			st.session_state.num_correct = 0
+			st.session_state.total_clues = 0
+		col7.write(f"Total correct: {st.session_state.num_correct}/{st.session_state.total_clues}")
+
+
+
+		if st.session_state.clue_number > 0 and st.button("Next Random Clue"):
+
+
+
+			st.session_state.pressed_correct = False
+			st.session_state.clue_number += 1
+			st.session_state.total_clues += 1
+
+			if st.session_state.clue_number == length:
+				# st.write("All clues for game shown. Generate a new game to continue playing.")
+				st.session_state.clue_number = 0
+
+			value = df.iloc[clue_numbers[st.session_state.clue_number]]["value"]
+			if df.iloc[clue_numbers[st.session_state.clue_number]]["round"] == "DJ!":
+				difficulty_level = value_map[value/2]
+			else:
+				difficulty_level = value_map[value]
+
+			st.write(f"**Difficulty level**: {difficulty_level}/5")
+			st.write("**Category:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["category"])
+			st.write("**Clue:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["clue"])
+
+			
+
+
+		if st.session_state.clue_number > 0 and not st.session_state.pressed_correct:
+			placeholder = st.empty()
+			isclick = placeholder.button("Show Answer")
+			if isclick:
+				st.write("**Category:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["category"])
+				st.write("**Clue:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["clue"])
+				st.write("**Answer:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["response"])
+				placeholder.empty()
+
+				
+
+				st.button("Correct", on_click=update_num_correct)
+
+
+
+
+
 			
 	# if st.session_state.temp:	
 	# 	asyncio.run(watch(30))
