@@ -68,8 +68,9 @@ def extract_categories(df):
 
 	return categories
 
-def get_clue_numbers(num):
-	clue_numbers = list(range(1, num))
+@st.cache_data
+def get_clue_numbers(_num):
+	clue_numbers = list(range(1, _num))
 	random.shuffle(clue_numbers)
 	return clue_numbers
 
@@ -131,9 +132,8 @@ def main():
 		st.session_state.num_correct = 0
 	if 'difficulty' not in st.session_state:
 		st.session_state.difficulty = {0:0, 1:0, 2:0, 3:0, 4:0}
-
-	if 'temp' not in st.session_state:
-		st.session_state.temp = True
+	if 'in_cat' not in st.session_state:
+		st.session_state.in_cat = False
 
 	option = None
 
@@ -155,7 +155,7 @@ def main():
 
 		col7.write(f"Total correct: {st.session_state.num_correct}/{st.session_state.total_clues}")
 
-
+		st.session_state.in_cat = False
 
 
 		if col4.button("Reset Scores"):
@@ -224,14 +224,24 @@ def main():
 
 
 	else:
+		df = get_specific_category(option, db)
+		length = len(df)
+
+		clue_numbers = get_clue_numbers(length - 1)
+
+		if not st.session_state.in_cat:
+			st.session_state.clue_number = 0
+
+		st.session_state.in_cat = True
+
 		col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
 
 
-		df = get_specific_category(option, db)
-		length = len(df)
-		st.session_state.clue_number = 1
 
-		clue_numbers = get_clue_numbers(length)
+
+
+
+
 
 
 		col1.write(f"Total clues: {length}")
@@ -243,7 +253,7 @@ def main():
 
 
 
-		if st.session_state.clue_number > 0 and st.button("Next Random Clue"):
+		if st.session_state.clue_number > -1 and st.button("Next Random Clue"):
 
 
 
@@ -255,26 +265,41 @@ def main():
 				# st.write("All clues for game shown. Generate a new game to continue playing.")
 				st.session_state.clue_number = 0
 
-			value = df.iloc[clue_numbers[st.session_state.clue_number]]["value"]
-			if df.iloc[clue_numbers[st.session_state.clue_number]]["round"] == "DJ!":
+
+			index = clue_numbers[st.session_state.clue_number]
+
+			if index > length:
+				index -= (index - length)
+				index -= 1
+
+			print(index)
+
+			value = df.iloc[index]["value"]
+			if df.iloc[index]["round"] == "DJ!":
 				difficulty_level = value_map[value/2]
 			else:
 				difficulty_level = value_map[value]
 
 			st.write(f"**Difficulty level**: {difficulty_level}/5")
-			st.write("**Category:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["category"])
-			st.write("**Clue:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["clue"])
-
+			st.write("**Category:** " + df.iloc[index]["category"])
+			st.write("**Clue:** " + df.iloc[index]["clue"])
 			
 
 
-		if st.session_state.clue_number > 0 and not st.session_state.pressed_correct:
+		if st.session_state.clue_number > -1 and not st.session_state.pressed_correct:
 			placeholder = st.empty()
 			isclick = placeholder.button("Show Answer")
+
 			if isclick:
-				st.write("**Category:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["category"])
-				st.write("**Clue:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["clue"])
-				st.write("**Answer:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["response"])
+				index = clue_numbers[st.session_state.clue_number]
+
+				if index > length:
+					index -= (index - length)
+					index -= 1
+
+				st.write("**Category:** " + df.iloc[index]["category"])
+				st.write("**Clue:** " + df.iloc[index]["clue"])
+				st.write("**Answer:** " + df.iloc[index]["response"])
 				placeholder.empty()
 
 				
