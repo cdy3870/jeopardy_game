@@ -1,6 +1,6 @@
 from clue import Clue
 from dbdriver import DBDriver
-from queries import insert_clues
+from queries import insert_clues, insert_games
 import streamlit as st
 import pandas.io.sql as psql
 import pandas as pd
@@ -9,6 +9,7 @@ import time
 import asyncio
 from datetime import datetime
 from PIL import Image
+from game import Game
 
 st.set_page_config(
 	page_title="Jeopardy Practice",
@@ -18,7 +19,7 @@ st.set_page_config(
 
 st.markdown("<h1 style='text-align: center'> Jeopardy Practice </h1>", unsafe_allow_html=True)
 
-st.markdown("<p style='text-align: center'> Test your trivia knowledge with 500 old Jeopardy games. </p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center'> Test your trivia knowledge with over 500 old Jeopardy games. </p>", unsafe_allow_html=True)
 
 value_map = {200: 1, 400: 2, 600: 3, 800: 4, 1000: 5}
 
@@ -43,12 +44,37 @@ def get_insert_query(offset, n_clues):
 
 	return insert_query
 
+
+def get_insert_query_game(game_ids):
+	games = Game(game_ids)
+	game_data = games._get_games_from_ids()
+	query_list = []
+	for game in game_data:
+		query_list.append(insert_games.format(game["id"], game["episode_num"], game["season_id"], game["air_date"],
+											 game["notes"].replace("'", "''"), game["contestant1"],
+											 game["contestant2"], game["contestant3"],
+											 game["winner"], game["score1"], game["score2"], game["score3"]))
+	insert_query = "BEGIN; \n" + '\n'.join(query_list) + "\nCOMMIT;"	
+	print(insert_query)
+	return insert_query
+
 def store_games(db, number_of_games):
 	i = 0
 	while i < number_of_games * 60:
 		insert_query = get_insert_query(i, 60)
 		db.execute_query(insert_query)
 		i += 60
+
+def store_game_info(db):
+	test_df = psql.read_sql(
+	f"SELECT * FROM jeopardy.clues", db.conn)
+
+	game_ids = list(sorted(test_df["game_id"].unique()))
+
+	queries = get_insert_query_game(game_ids)
+
+	db.execute_query(queries)
+
 
 def get_game(_conn):
 	game_numbers = list(range(1, 51))
@@ -114,9 +140,12 @@ def main():
 	db = setup_db(reset=False, host="drona.db.elephantsql.com", name="hvkogzmy",
 				user="hvkogzmy", password="TqgdVBnft1hXRg7_oG73QZriwst4_BLA")
 
+
 	top_categories = get_top_categories(db, 25)
 
+
 	# store_games(db, 500)
+	# store_game_info(db)
 	
 
 	# store_games(db, 50)

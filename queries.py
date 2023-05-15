@@ -18,3 +18,28 @@ CREATE TABLE IF NOT EXISTS jeopardy.clues (
 """
 
 insert_clues = """INSERT INTO jeopardy.clues VALUES ({}, {}, {}, {}, '{}', '{}', '{}', '{}');"""
+
+
+create_game_table = """
+CREATE TABLE IF NOT EXISTS jeopardy.games (
+	game_id INT PRIMARY KEY,
+	episode_num INT,
+	season_id INT,
+	air_date VARCHAR(20),
+	notes VARCHAR(1000),
+	contestant1 INT,
+	contestant2 INT,
+	contestant3 INT,
+	winner INT,
+	score1 INT,
+	score2 INT,
+	score3 INT
+);
+"""
+
+delete_game_table = """
+DROP TABLE IF EXISTS jeopardy.games;
+"""
+
+
+insert_games = """INSERT INTO jeopardy.games VALUES ({}, {}, {}, '{}', '{}', {}, {}, {}, {}, {}, {}, {});"""

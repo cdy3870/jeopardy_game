@@ -11,12 +11,14 @@ class DBDriver:
 		self.curr.execute(query)
 
 	def show_data(self):
+		# dataframe = psql.read_sql(
+		#     "SELECT * FROM jeopardy.clues", self.conn)
 		dataframe = psql.read_sql(
-		    "SELECT * FROM jeopardy.clues", self.conn)
-		
+		    "SELECT * FROM jeopardy.games", self.conn)		
 		print(dataframe)	
 
 	def setup(self):
 		self.execute_query(create_schema)
 		self.execute_query(delete_tables)
 		self.execute_query(create_clue_table)
+		self.execute_query(create_game_table)
