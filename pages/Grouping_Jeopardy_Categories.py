@@ -57,8 +57,8 @@ def get_confidence_charts(cats):
 
 
 	df = (
-	pd.DataFrame({"labels": cats["labels"], "scores": cats["scores"]})
-	.sort_values(by="scores", ascending=False)
+	pd.DataFrame({"broader category": cats["labels"], "probability": cats["scores"]})
+	.sort_values(by="probability", ascending=False)
 	.reset_index(drop=True)
 	)
 
@@ -70,7 +70,7 @@ def get_confidence_charts(cats):
 	df = df.style.background_gradient(
 		cmap=cmGreen,
 		subset=[
-			"scores",
+			"probability",
 		],
 	)
 

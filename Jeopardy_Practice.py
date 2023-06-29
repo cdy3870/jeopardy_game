@@ -10,7 +10,7 @@ import asyncio
 from datetime import datetime
 from PIL import Image
 from game import Game
-from pages.Grouping_Jeopardy_Categories import get_classified_cats
+from pages.Grouping_Jeopardy_Categories import get_classified_cats, get_all_results, get_confidence_charts
 
 st.set_page_config(
 	page_title="Jeopardy Practice",
@@ -110,6 +110,12 @@ def update_num_correct():
 	st.session_state.pressed_correct = True	
 
 
+def get_confidence_charts_helper(df, index):
+	all_results = get_all_results()
+	updated_results = {item["sequence"]:item for item in all_results}
+	conf_chart = get_confidence_charts(updated_results[df.iloc[index]["category"]])
+	return conf_chart
+
 async def watch(ts):
 	with st.empty():
 		while ts:
@@ -178,6 +184,7 @@ def main():
 	group_type = None
 
 	with st.sidebar:
+		option = "Full Random Game"
 		image = Image.open('image.png')
 
 		st.image(image, width=300)
@@ -195,8 +202,11 @@ def main():
 			group_type = "broad"
 
 
-	if option == None:
+
+	if option == "Full Random Game":
 		col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
+		_, new_col3, _ = st.columns(3)
+		new_col1, new_col2 = st.columns(2)
 
 		col7.write(f"Total correct: {st.session_state.num_correct}/{st.session_state.total_clues}")
 
@@ -216,36 +226,45 @@ def main():
 			finally:
 				st.session_state.result = df
 
-		clue_numbers = get_clue_numbers(61)
+		clue_numbers = get_clue_numbers(59)
 
 		if st.session_state.result is not None:
 			df = st.session_state.result
 			categories = extract_categories(df)
-			categories
+			new_col3.table(categories)
 
 
 		if st.session_state.clue_number > 0 and st.button("Next Random Clue"):
-
-
 
 			st.session_state.pressed_correct = False
 			st.session_state.clue_number += 1
 			st.session_state.total_clues += 1
 
-			if st.session_state.clue_number == 61:
-				# st.write("All clues for game shown. Generate a new game to continue playing.")
+
+			temp_result = None
+			while temp_result is None:
+				try:
+					temp_result = df.loc[clue_numbers[st.session_state.clue_number]]	
+					st.session_state.clue_number += 1		        
+				except:
+					 pass
+
+			if st.session_state.clue_number == 59:
+				st.write("All clues for game shown. Generate a new game to continue playing.")
 				st.session_state.clue_number = 0
 
-			value = df.iloc[clue_numbers[st.session_state.clue_number]]["value"]
-			if df.iloc[clue_numbers[st.session_state.clue_number]]["round"] == "DJ!":
+			value = df.loc[clue_numbers[st.session_state.clue_number]]["value"]
+			if df.loc[clue_numbers[st.session_state.clue_number]]["round"] == "DJ!":
 				difficulty_level = value_map[value/2]
 			else:
 				difficulty_level = value_map[value]
 
-			st.write(f"**Difficulty level:** {difficulty_level}/5")
-			st.write("**Category:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["category"])
-			st.write("**Clue:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["clue"])
-
+			new_col1.write(f"**Difficulty level:** {difficulty_level}/5")
+			new_col1.write("**Category:** " + df.loc[clue_numbers[st.session_state.clue_number]]["category"])
+			new_col1.write("**Clue:** " + df.loc[clue_numbers[st.session_state.clue_number]]["clue"])
+			conf_chart = get_confidence_charts_helper(df, clue_numbers[st.session_state.clue_number])
+			new_col2.table(conf_chart)
+			
 			st.session_state.temp = True
 
 			
@@ -255,12 +274,13 @@ def main():
 			placeholder = st.empty()
 			isclick = placeholder.button("Show Answer")
 			if isclick:
-				st.write("**Category:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["category"])
-				st.write("**Clue:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["clue"])
-				st.write("**Answer:** " + df.iloc[clue_numbers[st.session_state.clue_number]]["response"])
+				new_col1.write("**Category:** " + df.loc[clue_numbers[st.session_state.clue_number]]["category"])
+				new_col1.write("**Clue:** " + df.loc[clue_numbers[st.session_state.clue_number]]["clue"])
+				new_col1.write("**Answer:** " + df.loc[clue_numbers[st.session_state.clue_number]]["response"])
 				placeholder.empty()
 
-				
+				conf_chart = get_confidence_charts_helper(df, clue_numbers[st.session_state.clue_number])
+				new_col2.table(conf_chart)	
 				
 
 				st.button("Correct", on_click=update_num_correct)
@@ -275,6 +295,7 @@ def main():
 			df = get_specific_category(specific_cats, db)
 			length = len(df)
 
+
 		elif group_type == "top":
 			df = get_specific_category([option], db)
 			length = len(df)
@@ -288,13 +309,7 @@ def main():
 		st.session_state.in_cat = True
 
 		col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
-
-
-
-
-
-
-
+		new_col1, new_col2 = st.columns(2)
 
 
 		col1.write(f"Total clues: {length}")
@@ -325,7 +340,13 @@ def main():
 				index -= (index - length)
 				index -= 1
 
-			print(index)
+			temp_result = None
+			while temp_result is None:
+				try:
+					temp_result = df.loc[index]	
+					st.session_state.clue_number += 1		        
+				except:
+					 pass
 
 			value = df.iloc[index]["value"]
 			if df.iloc[index]["round"] == "DJ!":
@@ -333,10 +354,14 @@ def main():
 			else:
 				difficulty_level = value_map[value]
 
-			st.write(f"**Difficulty level**: {difficulty_level}/5")
-			st.write("**Category:** " + df.iloc[index]["category"])
-			st.write("**Clue:** " + df.iloc[index]["clue"])
+
+			new_col1.write(f"**Difficulty level**: {difficulty_level}/5")
+			new_col1.write("**Category:** " + df.loc[index]["category"])
+			new_col1.write("**Clue:** " + df.loc[index]["clue"])
 			
+			conf_chart = get_confidence_charts_helper(df, index)
+			new_col2.table(conf_chart)
+
 
 
 		if st.session_state.clue_number > -1 and not st.session_state.pressed_correct:
@@ -350,10 +375,12 @@ def main():
 					index -= (index - length)
 					index -= 1
 
-				st.write("**Category:** " + df.iloc[index]["category"])
-				st.write("**Clue:** " + df.iloc[index]["clue"])
-				st.write("**Answer:** " + df.iloc[index]["response"])
+				new_col1.write("**Category:** " + df.loc[index]["category"])
+				new_col1.write("**Clue:** " + df.loc[index]["clue"])
+				new_col1.write("**Answer:** " + df.loc[index]["response"])
 				placeholder.empty()
+				conf_chart = get_confidence_charts_helper(df, index)
+				new_col2.table(conf_chart)
 
 				
 
